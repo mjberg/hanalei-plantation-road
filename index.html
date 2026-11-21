@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Hanalei Plantation Road</title>
+<style>
+  :root{--paper:#F1ECE1;--ink:#1D2624;--ink-soft:#4A534E;--ocean:#1F5C63;--line:rgba(29,38,36,.22);--line-strong:rgba(29,38,36,.55);--surface:#FBF9F4;--bad:#8C3B2A;}
+  @media (prefers-color-scheme: dark){:root{--paper:#0D2331;--ink:#DCEAEA;--ink-soft:#9FC0C2;--ocean:#6FD8CB;--line:rgba(220,234,234,.20);--line-strong:rgba(220,234,234,.55);--surface:#122C3D;--bad:#F0A08C;}}
+  *{box-sizing:border-box;} html,body{margin:0;height:100%;}
+  body{background:var(--paper);color:var(--ink);font-family:ui-monospace,"SF Mono",Menlo,monospace;display:flex;align-items:center;justify-content:center;padding:16px;}
+  form{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line-strong);padding:28px 26px 24px;}
+  .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ocean);}
+  h1{font-family:"Helvetica Neue",Arial,sans-serif;font-stretch:condensed;font-size:30px;line-height:1;margin:10px 0 22px;font-weight:800;}
+  label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px;}
+  input{width:100%;font:inherit;font-size:16px;padding:11px 12px;border:1px solid var(--line-strong);background:var(--paper);color:var(--ink);border-radius:0;}
+  input:focus-visible,button:focus-visible{outline:2px solid var(--ocean);outline-offset:1px;}
+  button{width:100%;margin-top:14px;font:inherit;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;padding:12px;border:0;border-radius:7px;background:var(--ink);color:var(--surface);cursor:pointer;}
+  button:disabled{opacity:.6;cursor:default;}
+  #msg{min-height:18px;margin-top:12px;font-size:12px;color:var(--bad);}
+</style>
+</head>
+<body>
+<form id="f" autocomplete="off">
+  <div class="eyebrow">Private presentation</div>
+  <h1>Hanalei Plantation Road</h1>
+  <label for="pw">Password</label>
+  <input id="pw" type="password" autocomplete="current-password" autofocus required>
+  <button id="go" type="submit">View the drawings</button>
+  <div id="msg" role="alert"></div>
+</form>
+<script>
+(function(){
+  var SALT='f00bf3d4f9ff9864b547264bb1fb330a',ITER=300000,V='20261120163735',MAGIC='<!--HPR-OK-->';
+  function h2b(h){return new Uint8Array(h.match(/../g).map(function(b){return parseInt(b,16);}));}
+  function b2h(b){return Array.prototype.map.call(b,function(x){return ('0'+x.toString(16)).slice(-2);}).join('');}
+  function open(raw){
+    return Promise.all([crypto.subtle.importKey('raw',raw,'AES-CBC',false,['decrypt']),
+      fetch('index.html.enc?v='+V).then(function(r){if(!r.ok)throw new Error('load');return r.arrayBuffer();})]).then(function(a){
+        var b=new Uint8Array(a[1]);return crypto.subtle.decrypt({name:'AES-CBC',iv:b.slice(0,16)},a[0],b.slice(16));
+      }).then(function(buf){
+        var html=new TextDecoder().decode(buf);
+        if(html.slice(0,MAGIC.length)!==MAGIC)throw new Error('bad');
+        sessionStorage.setItem('hpr-key',b2h(raw));
+        document.open();document.write(html.slice(MAGIC.length));document.close();
+      });
+  }
+  var f=document.getElementById('f'),msg=document.getElementById('msg'),go=document.getElementById('go');
+  var saved=sessionStorage.getItem('hpr-key');
+  if(saved){open(h2b(saved)).catch(function(){sessionStorage.removeItem('hpr-key');});}
+  f.addEventListener('submit',function(e){
+    e.preventDefault();msg.textContent='';go.disabled=true;go.textContent='Opening...';
+    var pw=document.getElementById('pw').value;
+    crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']).then(function(k){
+      return crypto.subtle.deriveBits({name:'PBKDF2',salt:h2b(SALT),iterations:ITER,hash:'SHA-256'},k,256);
+    }).then(function(bits){return open(new Uint8Array(bits));}).catch(function(err){
+      go.disabled=false;go.textContent='View the drawings';
+      msg.textContent=(err&&err.message==='load')?'Could not load the site. Try again.':'Wrong password.';
+    });
+  });
+})();
+</script>
+</body>
+</html>
